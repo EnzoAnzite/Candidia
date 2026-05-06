@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:16
+    container_name: candidia-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: candidia
+      POSTGRES_USER: candidia_user
+      POSTGRES_PASSWORD: candidia_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - candidia_data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer
+    container_name: candidia-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+
+volumes:  
+  candidia_data:
