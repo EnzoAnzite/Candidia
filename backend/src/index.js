@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import applicationRoutes from './routes/applications.js';
+import authRoutes from './routes/auth.js';
 
 dotenv.config();
 
@@ -12,6 +13,7 @@ app.use(cors({ origin: process.env.FRONTEND_URL }));
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRoutes);           // ← nouveau
 app.use('/api/applications', applicationRoutes);
 
 // Health check

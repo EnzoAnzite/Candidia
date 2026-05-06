@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { z } from 'zod';
+import { requireAuth } from '../middleware/authMiddleware.js';
 
 const router = Router();
+
+router.use(requireAuth);
 
 const applicationSchema = z.object({
   company:      z.string().min(1, 'Champ obligatoire'),
