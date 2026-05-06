@@ -13,6 +13,7 @@
     "express": "^5.2.1",
     "googleapis": "^171.4.0",
     "jsonwebtoken": "^9.0.3",
+    "mailparser": "^3.9.8",
     "pg": "^8.20.0",
     "zod": "^4.4.3"
   },
