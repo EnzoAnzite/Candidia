@@ -1,0 +1,15 @@
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #01696f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Satoshi', Inter, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
