@@ -1,33 +1,30 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext.jsx';
-import Login from './pages/Login.jsx';
-import AuthCallback from './pages/AuthCallback.jsx';
-import Dashboard from './pages/Dashboard.jsx';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { ThemeProvider } from './context/ThemeContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import AuthCallback from './pages/AuthCallback'
+import Login from './pages/Login'
+import Dashboard from './pages/Dashboard'
 
 function PrivateRoute({ children }) {
-  const { user } = useAuth();
-  return user ? children : <Navigate to="/login" replace />;
-}
-
-function PublicRoute({ children }) {
-  const { user } = useAuth();
-  return user ? <Navigate to="/" replace /> : children;
+  const { user, loading } = useAuth()
+  if (loading) return null
+  return user ? children : <Navigate to="/" replace />
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={
-            <PublicRoute><Login /></PublicRoute>
-          } />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/" element={
-            <PrivateRoute><Dashboard /></PrivateRoute>
-          } />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  );
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/dashboard" element={
+              <PrivateRoute><Dashboard /></PrivateRoute>
+            } />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
+  )
 }

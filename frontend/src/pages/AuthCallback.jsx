@@ -1,35 +1,30 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
-import client from '../api/client.js';
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export default function AuthCallback() {
-  const { login } = useAuth();
-  const navigate  = useNavigate();
+  const navigate = useNavigate()
+  const { login } = useAuth()
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token  = params.get('token');
-    const error  = params.get('error');
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('token')
 
-    if (error || !token) {
-      navigate('/login');
-      return;
+    if (!token) {
+      navigate('/', { replace: true })
+      return
     }
 
-    // Stocke le token et récupère les infos utilisateur
-    window.__candidia_token = token;
-    client.get('/api/auth/me')
-      .then(({ data }) => {
-        login(token, data);
-        navigate('/');
+    fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(userData => {
+        login(token, userData)
+        navigate('/dashboard', { replace: true })
       })
-      .catch(() => navigate('/login'));
-  }, []);
+      .catch(() => navigate('/', { replace: true }))
+  }, [])
 
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-stone-500 text-sm">Connexion en cours…</p>
-    </div>
-  );
+  return null
 }

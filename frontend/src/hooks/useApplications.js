@@ -1,54 +1,51 @@
-import { useState, useEffect, useCallback } from 'react';
-import client from '../api/client.js';
+import { useState, useEffect, useCallback } from 'react'
+import api from '../api/client'
+
+const STATUS_MAP = {
+  'EN_COURS':        'En cours',
+  'ENTRETIEN':       'Entretien',
+  'REFUS':           'Refus',
+  'ACCEPTE':         'Accepté',
+  'PAS_DE_REPONSE':  'Pas de réponse',
+}
 
 export function useApplications() {
-  const [applications, setApplications] = useState([]);
-  const [loading, setLoading]           = useState(false);
-  const [syncing, setSyncing]           = useState(false);
-  const [error, setError]               = useState(null);
+  const [applications, setApplications] = useState([])
+  const [loading, setLoading]           = useState(true)
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchApplications = useCallback(async () => {
+    setLoading(true)
     try {
-      const { data } = await client.get('/api/applications');
-      setApplications(data);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Erreur de chargement.');
+      const { data } = await api.get('/applications')
+      const mapped = data.map(app => ({
+        ...app,
+        status: STATUS_MAP[app.status] ?? app.status,
+        applied_date: new Date(app.applied_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        updated_at: new Date(app.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      }))
+      setApplications(mapped)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
-  const create = async (payload) => {
-    const { data } = await client.post('/api/applications', payload);
-    setApplications(prev => [data, ...prev]);
-    return data;
-  };
+  useEffect(() => { fetchApplications() }, [fetchApplications])
 
-  const update = async (id, payload) => {
-    const { data } = await client.put(`/api/applications/${id}`, payload);
-    setApplications(prev => prev.map(a => a.id === id ? data : a));
-    return data;
-  };
+  // Stats
+  const stats = {
+    total:      applications.length,
+    interviews: applications.filter(a => a.status === 'Entretien').length,
+    rejections: applications.filter(a => a.status === 'Refus').length,
+    pending:    applications.filter(a => a.status === 'Pas de réponse').length,
+  }
 
-  const remove = async (id) => {
-    await client.delete(`/api/applications/${id}`);
-    setApplications(prev => prev.filter(a => a.id !== id));
-  };
+  // Chart data
+  const chartData = Object.entries(
+    applications.reduce((acc, app) => {
+      acc[app.status] = (acc[app.status] || 0) + 1
+      return acc
+    }, {})
+  ).map(([name, value]) => ({ name, value }))
 
-  const sync = async () => {
-    setSyncing(true);
-    try {
-      const { data } = await client.post('/api/sync');
-      await fetchAll(); // recharge après sync
-      return data.stats;
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  useEffect(() => { fetchAll(); }, [fetchAll]);
-
-  return { applications, loading, syncing, error, create, update, remove, sync, refetch: fetchAll };
+  return { applications, stats, chartData, loading, refetch: fetchApplications }
 }

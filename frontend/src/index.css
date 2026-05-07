@@ -1,15 +1,17 @@
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --color-primary: #01696f;
-}
+@custom-variant dark (&:is(.dark *));
 
-* { box-sizing: border-box; }
+@theme inline {
+  --color-primary: #0D9488;
+  --color-dark: #0F172A;
+  --color-neutral: #64748B;
 
-body {
-  font-family: 'Satoshi', Inter, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  /* Statuts */
+  --color-status-en-cours: #0D9488;
+  --color-status-entretien: #3B82F6;
+  --color-status-refus: #EF4444;
+  --color-status-accepte: #22C55E;
+  --color-status-pas-de-reponse: #94A3B8;
 }
