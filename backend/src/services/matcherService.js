@@ -1,48 +1,54 @@
 import { pool } from '../db.js';
-import { detectStatus, extractCompanyFromSender, extractRoleFromSubject } from './parserService.js';
+import { classifyEmail } from './parserService.js';
 
 export async function processAndSaveMail(mail, userId) {
   const { emailId, subject, from, date, body } = mail;
 
-  // 1. Vérifie si ce mail a déjà été traité
   const { rows: existing } = await pool.query(
     'SELECT id FROM applications WHERE email_id = $1',
     [emailId]
   );
   if (existing.length > 0) return { action: 'skipped', reason: 'Mail déjà traité' };
 
-  // 2. Détecte le statut
-  const status = detectStatus(subject, body);
+  const classification = await classifyEmail({ subject, body, sender: from });
 
-  // 3. Extrait les infos du mail
-  const companyFromMail = extractCompanyFromSender(from);
-  const roleFromMail    = extractRoleFromSubject(subject);
-
-  // 4. Cherche une candidature existante qui correspond
-  //    Stratégie : cherche une candidature EN_COURS dont l'entreprise
-  //    ressemble au domaine de l'expéditeur
-  let matchedApplication = null;
-
-  if (companyFromMail) {
-    const { rows } = await pool.query(
-      `SELECT * FROM applications
-       WHERE user_id = $1
-         AND LOWER(company) LIKE $2
-       ORDER BY applied_date DESC
-       LIMIT 1`,
-      [userId, `%${companyFromMail.toLowerCase()}%`]
-    );
-    matchedApplication = rows[0] || null;
+  if (classification.status === 'IGNORE') {
+    return { action: 'skipped', reason: 'Mail non pertinent (LLM)' };
   }
 
+  const { status, confidence, reason: classifyNote, company, role, platform } = classification;
+
+  const domainFallback = from.split('@')[1]?.split('.')[0]?.toLowerCase() || '';
+  const searchTerm     = company || domainFallback;
+
+  let matchedApplication = null;
+
+  if (searchTerm) {
+  const { rows } = await pool.query(
+    `SELECT * FROM applications
+     WHERE user_id = $1
+       AND LOWER(company) LIKE $2
+       AND (
+         role IS NULL          -- candidature sans poste → on accepte le match
+         OR $3::text IS NULL   -- LLM n'a pas trouvé de poste → on accepte le match
+         OR LOWER(role) LIKE $4
+       )
+     ORDER BY applied_date DESC
+     LIMIT 1`,
+    [
+      userId,
+      `%${searchTerm.toLowerCase()}%`,
+      role,
+      `%${role?.toLowerCase()}%`,
+    ]
+  );
+  matchedApplication = rows[0] || null;
+}
+
   if (matchedApplication) {
-    // 5a. Match trouvé → met à jour le statut si c'est une évolution
     const statusPriority = {
-      EN_COURS: 0,
-      PAS_DE_REPONSE: 1,
-      ENTRETIEN: 2,
-      REFUS: 3,
-      ACCEPTE: 3,
+      EN_COURS: 0, PAS_DE_REPONSE: 1,
+      ENTRETIEN: 2, REFUS: 3, ACCEPTE: 3,
     };
 
     const isUpgrade = statusPriority[status] > statusPriority[matchedApplication.status];
@@ -50,11 +56,19 @@ export async function processAndSaveMail(mail, userId) {
     if (isUpgrade) {
       await pool.query(
         `UPDATE applications
-         SET status     = $1,
-             email_id   = $2,
-             updated_at = NOW()
-         WHERE id = $3`,
-        [status, emailId, matchedApplication.id]
+         SET status        = $1,
+             email_id      = $2,
+             confidence    = $3,
+             classify_note = $4,
+             ai_classified = TRUE,
+             -- Met à jour company/role/platform si le LLM les a trouvés
+             company       = COALESCE($5, company),
+             role          = COALESCE($6, role),
+             platform      = COALESCE($7, platform),
+             updated_at    = NOW()
+         WHERE id = $8`,
+        [status, emailId, confidence, classifyNote,
+         company, role, platform, matchedApplication.id]
       );
       return { action: 'updated', applicationId: matchedApplication.id, status };
     }
@@ -62,21 +76,23 @@ export async function processAndSaveMail(mail, userId) {
     return { action: 'skipped', reason: 'Statut déjà à jour ou supérieur' };
   }
 
-  // 5b. Pas de match → crée une nouvelle candidature
   const { rows: newApp } = await pool.query(
     `INSERT INTO applications
-       (company, role, location, platform, status, applied_date, email_id, source, user_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'EMAIL', $8)
+       (company, role, location, platform, status, applied_date,
+        email_id, source, user_id, confidence, classify_note, ai_classified)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'EMAIL', $8, $9, $10, TRUE)
      RETURNING *`,
     [
-      companyFromMail || 'Inconnu',
-      roleFromMail    || subject,
+      company  || 'Inconnu',
+      role     || 'Non précisé',
       'Non renseigné',
-      'Email',
+      platform || 'Autre',
       status,
       date,
       emailId,
       userId,
+      confidence,
+      classifyNote,
     ]
   );
 

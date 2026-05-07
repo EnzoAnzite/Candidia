@@ -8,12 +8,14 @@
     "db:init": "node src/db/init.js"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "googleapis": "^171.4.0",
     "jsonwebtoken": "^9.0.3",
     "mailparser": "^3.9.8",
+    "openai": "^6.36.0",
     "pg": "^8.20.0",
     "zod": "^4.4.3"
   },
