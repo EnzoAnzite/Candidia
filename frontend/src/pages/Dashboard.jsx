@@ -9,7 +9,7 @@ import SyncCard from '../components/dashboard/SyncCard'
 import api from '../api/client'
 
 export default function Dashboard() {
-  const { applications, stats, chartData, loading, refetch } = useApplications()
+  const { applications, stats, chartData, refetch } = useApplications()
   const navigate = useNavigate()
   const [syncStatus, setSyncStatus] = useState(null) // null | 'syncing' | 'success' | 'error'
   const [syncLogs, setSyncLogs] = useState([])

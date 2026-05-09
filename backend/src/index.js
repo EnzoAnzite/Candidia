@@ -23,6 +23,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'Candidia', version: '1.0.0' });
 });
 
+export default app
+
 app.listen(PORT, () => {
   console.log(`Candidia backend démarré sur http://localhost:${PORT}`);
 });
