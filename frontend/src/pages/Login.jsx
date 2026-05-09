@@ -2,6 +2,8 @@ import { motion } from 'motion/react'
 import { Briefcase } from 'lucide-react'
 import { Button } from '../components/ui/button'
 
+const API_URL = import.meta.env.VITE_API_URL
+
 export default function Login() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
@@ -26,7 +28,7 @@ export default function Login() {
 
         {/* Bouton Google */}
         <a
-          href={`${import.meta.env.VITE_API_URL}/auth/google`}
+          href={`${API_URL}/auth/google`}
           className="w-full"
         >
           <Button

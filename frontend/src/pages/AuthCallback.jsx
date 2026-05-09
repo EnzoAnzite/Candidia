@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
+const API_URL = import.meta.env.VITE_API_URL
+
 export default function AuthCallback() {
   const navigate = useNavigate()
   const { login } = useAuth()
@@ -15,7 +17,7 @@ export default function AuthCallback() {
       return
     }
 
-    fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+    fetch(`${API_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
